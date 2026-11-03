@@ -8,16 +8,15 @@ NAIP 航图阅读器（Vue 3 + Vite，纯前端）。浏览 NAIP2610 机场航�
 数据文件不入库（见 `.gitignore`），放到 `public/data/NAIP2610/`：
 
 ```
-NAIP-Viewer/
-└── public/data/
-    └── NAIP2610/        ← NAIP 原始数据（Terminal/、GeneralDoc/、各 CSV）
-    └── index/           ← 由 npm run index 生成，无需手工准备
+public/data/
+└── NAIP2610/        ← NAIP 原始数据（Terminal/、GeneralDoc/、各 CSV）
+└── index/           ← 由 npm run index 生成，无需手工准备
 ```
 
 如果数据在别处，可以建目录联接代替复制（Windows）：
 
 ```bat
-cd NAIP-Viewer\public\data
+cd public\data
 mklink /J NAIP2610 <NAIP2610 数据目录的实际路径>
 ```
 
@@ -50,5 +49,5 @@ mklink /J dist\data ..\public\data
 ```
 scripts/build_index.py    CSV(GBK) → JSON 索引（含航图文件名映射规则）
 src/store.js              全局状态与数据 URL
-src/components/           AirportPanel / DocsPanel / DataPanel / PdfViewer / VIcon
+src/components/           HomePage / AirportPanel / DocsPanel / DataPanel / PdfViewer / VIcon
 ```

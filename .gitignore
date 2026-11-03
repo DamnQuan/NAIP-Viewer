@@ -1,14 +1,14 @@
-# NAIP 原始数据
-NAIP-Viewer/public/data/NAIP2610/
-
-# 由 scripts/build_index.py 生成
-NAIP-Viewer/public/data/index/
-
 # 依赖与构建产物
 node_modules/
 dist/
 
-# 系统与日志
+# NAIP 原始数据（航图 PDF、CSV，体积大，不入库）
+public/data/NAIP2610/
+
+# 由 scripts/build_index.py 生成（可用数据重新生成）
+public/data/index/
+
+# 系统文件与日志
 .DS_Store
 Thumbs.db
 *.log
