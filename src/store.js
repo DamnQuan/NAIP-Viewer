@@ -1,25 +1,21 @@
 import { reactive } from 'vue'
 
 export const store = reactive({
-  tab: 'charts',            // charts | docs | data
+  tab: 'charts',
   search: '',
   meta: {},
-  // charts
   airports: [],
   details: {},
   airport: null,
   charts: [],
+  flatCharts: [],
   curChart: -1,
-  // viewer
-  viewer: null,             // { url, title }
-  // data panel
+  viewer: null,
   dataTab: 'vor',
 })
 
 export const dataURL = (...parts) =>
   '/data/NAIP2610/' + parts.map(encodeURIComponent).join('/')
-
-export const indexURL = (name) => '/data/index/' + name
 
 export async function loadJSON(url) {
   const r = await fetch(url)

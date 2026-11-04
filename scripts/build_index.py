@@ -1,14 +1,8 @@
 # -*- coding: utf-8 -*-
-"""
-NAIP 数据索引生成脚本
-从 public/data/NAIP2610 的 CSV（GBK 编码）生成前端索引 JSON 到 public/data/index/。
-用法: python scripts/build_index.py   （或 npm run index）
-"""
 import csv
 import io
 import json
 import os
-import re
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_SRC = os.path.join(BASE, "public", "data", "NAIP2610")

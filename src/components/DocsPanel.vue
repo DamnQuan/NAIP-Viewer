@@ -36,7 +36,6 @@ const tree = ref([])
 const q = ref('')
 onMounted(async () => { tree.value = await loadJSON('/data/index/docs.json') })
 
-// 递归平铺，供搜索
 const flat = computed(() => {
   const s = q.value.trim().toLowerCase()
   const out = []
@@ -53,11 +52,9 @@ const flat = computed(() => {
 const docURL = (n) => dataURL('GeneralDoc', n.p)
 
 function open(n) {
-  // 每次新对象，失败可重试
   store.viewer = { url: docURL(n), title: 'NAIP 总资料 — ' + n.t }
 }
 
-// 搜索框由 App 侧栏提供，双向同步
 function setSearch(v) { q.value = v }
 defineExpose({ setSearch })
 </script>

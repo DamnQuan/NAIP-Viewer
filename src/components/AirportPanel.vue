@@ -59,7 +59,6 @@ import { computed, ref, watch } from 'vue'
 import VIcon from './VIcon.vue'
 import { store, loadJSON, dataURL, CHART_GROUPS } from '../store.js'
 
-// 默认仅展开第一组
 const closedSet = ref(null)
 
 const filtered = computed(() => {
@@ -103,7 +102,6 @@ function back() {
   store.curChart = -1
 }
 
-// 扁平顺序与展示顺序一致，用于上一张/下一张
 function flatIndex(groups, g, c) {
   let i = 0
   for (const gg of groups) {

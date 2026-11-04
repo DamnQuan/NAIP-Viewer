@@ -1,5 +1,4 @@
 <script setup>
-// 极简内联 SVG 图标（线性，统一 stroke）
 const icons = {
   chart: 'M2 19h20M4 19V9m5 10V5m5 14v-7m5 7V8',
   book: 'M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17.5H6.5A2.5 2.5 0 0 0 4 22V4.5zM20 17H6.5A2.5 2.5 0 0 0 4 19.5',

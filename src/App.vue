@@ -1,10 +1,7 @@
 <template>
-  <!-- 主页 -->
   <HomePage v-if="atHome" :theme="theme" @enter="enterApp" @toggleTheme="toggleTheme"/>
 
-  <!-- 工作台 -->
   <div class="shell" v-else>
-    <!-- 左侧导航栏：收起=图标条，展开=带文字的导航面板 -->
     <nav class="rail" :class="{ open: navOpen }">
       <button @click="navOpen = !navOpen">
         <VIcon name="panel" :size="17"/>
@@ -34,7 +31,6 @@
       </button>
     </nav>
 
-    <!-- 侧栏（数据页隐藏；可折叠） -->
     <aside class="sidebar" v-show="sidebarOpen && store.tab !== 'data'">
       <div class="search-wrap" v-if="store.tab !== 'data'">
         <input v-model="store.search"
@@ -45,7 +41,6 @@
       <DocsPanel v-else ref="docsPanel"/>
     </aside>
 
-    <!-- 主区 -->
     <div class="main">
       <header class="topbar">
         <div class="wordmark">NAIP<span>-Viewer</span></div>
@@ -71,7 +66,6 @@ import { store, loadJSON, dataURL } from './store.js'
 const theme = ref(document.documentElement.dataset.theme || 'dark')
 const docsPanel = ref(null)
 
-// 主页：首次进入显示，点「立即进入」后本会话不再出现
 const atHome = ref(!sessionStorage.getItem('naip-entered'))
 function enterApp() {
   sessionStorage.setItem('naip-entered', '1')
@@ -82,12 +76,9 @@ function goHome() {
   sessionStorage.removeItem('naip-entered')
 }
 
-// 侧栏折叠（数据页自带全宽表格，自动隐藏侧栏）
 const sidebarOpen = ref(true)
-// 导航栏展开/收起（默认收起为图标条）
 const navOpen = ref(false)
 
-// 总资料页：侧栏搜索框内容同步给 DocsPanel
 watch(() => store.tab, (t) => { if (t === 'docs') docsPanel.value?.setSearch('') })
 watch(() => store.search, (v) => { if (store.tab === 'docs') docsPanel.value?.setSearch(v) })
 
@@ -97,7 +88,6 @@ function toggleTheme() {
   localStorage.setItem('naip-theme', theme.value)
 }
 
-// PgUp / PgDn 在航图间切换
 function onKey(e) {
   if (e.target.tagName === 'INPUT') return
   if (store.tab !== 'charts' || store.curChart < 0) return

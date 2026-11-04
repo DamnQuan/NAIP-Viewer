@@ -44,7 +44,7 @@ import { store, dataURL } from '../store.js'
 
 const stageEl = ref(null)
 const canvasEl = ref(null)
-const pdf = shallowRef(null) // shallowRef：避免 Vue 深层代理破坏 pdf.js 私有字段
+const pdf = shallowRef(null) // shallowRef 避免 Vue 代理破坏 pdf.js 内部私有字段
 const loading = ref(false)
 const pageNum = ref(1)
 const scale = ref(1)
@@ -56,8 +56,6 @@ let loadSeq = 0
 
 async function open(url) {
   const seq = ++loadSeq
-  // 旧文档与其 worker 全部销毁（每个文档独立 worker，避免共享 worker 在
-  // destroy 后进入坏状态导致后续加载随机失败）
   try { pdf.value?.destroy() } catch {}
   pdf.value = null
   pageNum.value = 1
@@ -65,7 +63,6 @@ async function open(url) {
   loading.value = true
   const worker = new PdfWorker()
   try {
-    // 传 PDFWorker 包装实例（workerPort 指向真实 Worker）
     const pdfWorker = new pdfjsLib.PDFWorker({ port: worker })
     try {
       const doc = await pdfjsLib.getDocument({ url, worker: pdfWorker }).promise
@@ -87,7 +84,6 @@ async function open(url) {
 }
 
 async function render() {
-  // 渲染进行中不丢弃请求，改为记下待渲染，完成后用最新状态补一次
   if (rendering) { pendingRender = true; return }
   rendering = true
   try {
@@ -145,7 +141,6 @@ function print() {
   w.document.close()
 }
 
-// 监听 viewer 对象（每次点击都是新对象，同一张失败后可重试）
 watch(() => store.viewer, async (v) => {
   if (!v?.url) { try { pdf.value?.destroy() } catch {}; pdf.value = null; return }
   await nextTick()
