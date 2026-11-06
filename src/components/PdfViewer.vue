@@ -29,7 +29,10 @@
         <p v-else>在下方浏览数据</p>
       </div>
       <div v-else class="paper-wrap">
-        <div class="paper"><canvas ref="canvasEl"/></div>
+        <div class="paper"><canvas :key="canvasKey" ref="canvasEl"/></div>
+      </div>
+      <div v-if="loadError && pdf" class="empty stage-error">
+        <p class="err">{{ loadError }}</p>
       </div>
     </div>
   </div>
@@ -50,54 +53,106 @@ const pageNum = ref(1)
 const scale = ref(1)
 const fit = ref('width')
 const loadError = ref('')
+const canvasKey = ref(0) // 每次打开换新 canvas：渲染中途销毁文档会让旧 canvas 被 pdf.js 锁死
+let renderTask = null
 let rendering = false
 let pendingRender = false
+let renderStartedAt = 0
 let loadSeq = 0
+let quality = 0.6 // backing 分辨率系数，按实测渲染速度自适应（0.35–1）
+let currentUrl = ''
 
-async function open(url) {
-  const seq = ++loadSeq
+// 应用级共享 worker：显式传给 getDocument，pdf.js 便不会在文档销毁时
+// 连带销毁 worker（否则连点同一文件会撞上 pendingDestroy 竞态）
+let sharedWorker = null
+let sharedPort = null
+function makeWorker() {
+  sharedPort = new PdfWorker()
+  sharedWorker = new pdfjsLib.PDFWorker({ port: sharedPort })
+}
+makeWorker()
+function resetWorker() {
+  try { sharedWorker.destroy() } catch {}
+  try { sharedPort.terminate() } catch {}
+  makeWorker()
+}
+
+function cancelRender() {
+  try { renderTask?.cancel() } catch {}
+  renderTask = null
+}
+
+// worker 异常时渲染请求可能永不返回，超时熔断防止队列锁死
+function withDeadline(p, ms) {
+  let timer
+  const t = new Promise((_, rej) => { timer = setTimeout(() => rej(new Error('渲染超时')), ms) })
+  t.catch(() => {})
+  return Promise.race([p, t]).finally(() => clearTimeout(timer))
+}
+
+function releaseDoc() {
+  cancelRender()
   try { pdf.value?.destroy() } catch {}
   pdf.value = null
+  currentUrl = ''
+}
+
+async function open(url) {
+  // 同一文件重复点击且文档已就绪：无需重新加载
+  if (currentUrl === url && pdf.value && !loadError.value) return
+  const seq = ++loadSeq
+  cancelRender()
+  try { await pdf.value?.destroy() } catch {}
+  pdf.value = null
+  currentUrl = ''
   pageNum.value = 1
   loadError.value = ''
   loading.value = true
-  const worker = new PdfWorker()
+  canvasKey.value++
   try {
-    const pdfWorker = new pdfjsLib.PDFWorker({ port: worker })
-    try {
-      const doc = await pdfjsLib.getDocument({ url, worker: pdfWorker }).promise
-      if (seq !== loadSeq) { try { doc.destroy() } catch {}; return }
-      pdf.value = doc
-      await nextTick()
-      await render()
-    } finally {
-      pdfWorker.destroy()
-    }
+    const doc = await withDeadline(
+      pdfjsLib.getDocument({ url, worker: sharedWorker }).promise, 60000)
+    if (seq !== loadSeq) { try { doc.destroy() } catch {}; return }
+    currentUrl = url
+    pdf.value = doc
+    await nextTick()
+    await render()
   } catch (e) {
     if (seq !== loadSeq) return
     console.error('PDF 加载失败:', e)
-    loadError.value = '加载失败：' + (e?.message || e) + '（点击左侧航图重试）'
+    loadError.value = '加载失败：' + (e?.message || e) + '（点击左侧重试）'
+    resetWorker() // worker 可能已损坏，重建以便下次加载
   } finally {
-    worker.terminate()
     if (seq === loadSeq) loading.value = false
   }
 }
 
 async function render() {
-  if (rendering) { pendingRender = true; return }
+  if (rendering) {
+    pendingRender = true
+    // 渲染已进行超过 0.8s 时来了新请求：取消旧任务立即转向新参数
+    if (renderStartedAt && performance.now() - renderStartedAt > 800) cancelRender()
+    return
+  }
   rendering = true
+  const seq = loadSeq
   try {
-    while (pendingRender || pdf.value) {
+    while (seq === loadSeq) {
       pendingRender = false
       if (!pdf.value || !canvasEl.value) break
+      renderStartedAt = performance.now()
       await renderOnce()
-      if (!pendingRender) break
+      if (!pendingRender || seq !== loadSeq) break
     }
+  } catch (e) {
+    pendingRender = false
+    console.error('渲染失败:', e)
+    loadError.value = '渲染失败：' + (e?.message || e) + '（重新点击可重试）'
   } finally { rendering = false }
 }
 
 async function renderOnce() {
-  const page = await pdf.value.getPage(pageNum.value)
+  const page = await withDeadline(pdf.value.getPage(pageNum.value), 30000)
   const base = page.getViewport({ scale: 1 })
   const availW = stageEl.value.clientWidth - 36
   const availH = stageEl.value.clientHeight - 36
@@ -106,13 +161,36 @@ async function renderOnce() {
   else if (fit.value === 'page') s = Math.min(availW / base.width, availH / base.height)
   else s = scale.value
   scale.value = Math.max(0.1, Math.min(8, s))
-  const vp = page.getViewport({ scale: scale.value * devicePixelRatio })
+
+  // 显示尺寸跟随 CSS 缩放；backing 分辨率 = CSS 尺寸 × DPR × 自适应质量，
+  // 并设硬上限，避免慢环境里单次渲染耗时失控
+  const cssW = Math.floor(base.width * scale.value)
+  const cssH = Math.floor(base.height * scale.value)
+  let bs = devicePixelRatio * quality
+  if (cssW * cssH * bs * bs > 12_000_000) {
+    bs = Math.max(0.4, Math.sqrt(12_000_000 / (cssW * cssH)))
+  }
   const canvas = canvasEl.value
-  canvas.width = Math.floor(vp.width)
-  canvas.height = Math.floor(vp.height)
-  canvas.style.width = Math.floor(vp.width / devicePixelRatio) + 'px'
-  canvas.style.height = Math.floor(vp.height / devicePixelRatio) + 'px'
-  await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise
+  canvas.width = Math.floor(cssW * bs)
+  canvas.height = Math.floor(cssH * bs)
+  canvas.style.width = cssW + 'px'
+  canvas.style.height = cssH + 'px'
+  const task = page.render({ canvasContext: canvas.getContext('2d'),
+    viewport: page.getViewport({ scale: scale.value * bs }) })
+  renderTask = task
+  const t0 = performance.now()
+  try {
+    await withDeadline(task.promise, 90000)
+    const ms = performance.now() - t0
+    if (ms > 2500 && quality > 0.35) quality = Math.max(0.35, quality * 0.65)
+    else if (ms < 900 && quality < 1) quality = Math.min(1, quality / 0.65)
+  } catch (e) {
+    if (e?.name === 'RenderingCancelledException') return
+    try { task.cancel() } catch {}
+    throw e
+  } finally {
+    if (renderTask === task) renderTask = null
+  }
 }
 
 function navChart(delta) {
@@ -142,7 +220,7 @@ function print() {
 }
 
 watch(() => store.viewer, async (v) => {
-  if (!v?.url) { try { pdf.value?.destroy() } catch {}; pdf.value = null; return }
+  if (!v?.url) { releaseDoc(); return }
   await nextTick()
   open(v.url)
 })
@@ -151,5 +229,5 @@ watch(fit, () => render())
 let rt
 const onResize = () => { clearTimeout(rt); rt = setTimeout(() => render(), 200) }
 onMounted(() => window.addEventListener('resize', onResize))
-onBeforeUnmount(() => window.removeEventListener('resize', onResize))
+onBeforeUnmount(() => { window.removeEventListener('resize', onResize); releaseDoc() })
 </script>

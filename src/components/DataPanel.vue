@@ -23,9 +23,9 @@
       </table>
       <div class="count" v-else>无匹配结果</div>
       <div class="pager" v-if="pages > 1">
-        <button @click="page--; renderPage()" :disabled="page <= 1">‹ 上一页</button>
+        <button @click="page--" :disabled="page <= 1">‹ 上一页</button>
         <span>{{ page }} / {{ pages }}</span>
-        <button @click="page++; renderPage()" :disabled="page >= pages">下一页 ›</button>
+        <button @click="page++" :disabled="page >= pages">下一页 ›</button>
       </div>
       <div class="count" v-if="filteredRows.length">{{ filteredRows.length }} 条记录</div>
     </div>
@@ -141,7 +141,6 @@ const paged = computed(() =>
   filteredRows.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE))
 
 function switchTab(k) { store.dataTab = k }
-function renderPage() {}
 
 watch(() => store.dataTab, async (k) => {
   rows.value = null

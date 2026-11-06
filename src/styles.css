@@ -298,3 +298,5 @@ body {
 }
 .enter:hover { transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-soft); }
 .enter:active { transform: translateY(0); }
+
+.stage-error { background: var(--stage); z-index: 2; }
