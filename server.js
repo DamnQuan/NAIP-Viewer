@@ -15,6 +15,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8787)
+const HOST = process.argv[3] || process.env.HOST || '127.0.0.1' // 部署到局域网/公网用 0.0.0.0
 const ROOT = path.dirname(fileURLToPath(import.meta.url))
 const DIST = path.join(ROOT, 'dist')
 const DATA_DIR = path.join(ROOT, 'data')
@@ -215,7 +216,7 @@ const server = http.createServer(async (req, res) => {
   fail(res, 404, '接口不存在')
 })
 
-server.listen(PORT, '127.0.0.1', () => {
+server.listen(PORT, HOST, () => {
   console.log(`NAIP-Viewer 后端已启动: http://127.0.0.1:${PORT}`)
   console.log('  开发模式: npm run dev（Vite 会把 /api 代理到这里）')
   console.log(`  账号数据: ${USERS_FILE}`)
