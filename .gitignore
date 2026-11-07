@@ -8,6 +8,9 @@ public/data/NAIP2610/
 # 由 scripts/build_index.py 生成（可用数据重新生成）
 public/data/index/
 
+# 登录系统的账号数据（含密码散列，不入库）
+/data/
+
 # 系统文件与日志
 .DS_Store
 Thumbs.db

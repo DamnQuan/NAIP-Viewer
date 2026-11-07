@@ -300,3 +300,65 @@ body {
 .enter:active { transform: translateY(0); }
 
 .stage-error { background: var(--stage); z-index: 2; }
+
+/* ---------- 登录页 ---------- */
+.login {
+  height: 100%; position: relative; overflow: hidden;
+  display: grid; place-items: center; background: var(--bg);
+}
+.login-card {
+  position: relative; width: 340px; padding: 34px 34px 30px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  display: flex; flex-direction: column; gap: 14px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+}
+.wordmark-lg { font-size: 26px; font-weight: 700; text-align: center; }
+.wordmark-lg span { color: var(--accent); }
+.login-sub { text-align: center; color: var(--dim); font-size: 13px; margin: -6px 0 8px; }
+.login-card label { display: flex; flex-direction: column; gap: 5px; }
+.login-card label span { font-size: 12px; color: var(--dim); }
+.login-card input {
+  padding: 9px 11px; font-size: 13.5px; color: var(--text);
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; outline: none;
+}
+.login-card input:focus { border-color: var(--accent); }
+.login-err { color: var(--tag-mod); font-size: 12.5px; text-align: center; }
+.login-card .enter { margin-top: 4px; width: 100%; justify-content: center; }
+
+/* ---------- 账号管理 ---------- */
+.admin-panel { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px; background: var(--panel); }
+.admin-head {
+  display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px;
+  font-size: 15px; font-weight: 700;
+}
+.admin-tip { font-size: 12px; color: var(--dim); font-weight: 400; }
+.admin-add { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.admin-add input, .admin-add select {
+  padding: 7px 10px; font-size: 12.5px; color: var(--text);
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; outline: none;
+}
+.admin-add input { width: 200px; }
+.admin-add input:focus, .admin-add select:focus { border-color: var(--accent); }
+.admin-add button {
+  padding: 7px 16px; font-size: 12.5px; cursor: pointer;
+  background: var(--accent); color: var(--accent-contrast);
+  border: none; border-radius: 6px; font-weight: 600;
+}
+.admin-add button:disabled { opacity: 0.5; }
+.admin-err { color: var(--tag-mod); font-size: 12.5px; margin-bottom: 8px; }
+.pwd-edit { display: flex; gap: 6px; }
+.pwd-edit input {
+  width: 130px; padding: 5px 8px; font-size: 12px; color: var(--text);
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 5px; outline: none;
+}
+.pwd-edit button, td button.danger {
+  padding: 5px 10px; font-size: 12px; cursor: pointer; border-radius: 5px;
+  background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+}
+.pwd-edit button:disabled, td button.danger:disabled { opacity: 0.4; cursor: default; }
+td button.danger:hover:not(:disabled) { color: var(--tag-mod); border-color: var(--tag-mod); background: var(--tag-mod-bg); }
+.whoami { font-size: 12px; color: var(--dim); flex: none; }
+.whoami i {
+  font-style: normal; margin-left: 5px; padding: 1px 6px; border-radius: 3px;
+  font-size: 10.5px; color: var(--accent); background: var(--accent-soft);
+}

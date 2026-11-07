@@ -1,6 +1,14 @@
 <template>
-  <HomePage v-if="atHome" :theme="theme" @enter="enterApp" @toggleTheme="toggleTheme"/>
+  <!-- 会话检查中 -->
+  <div class="login" v-if="!store.authReady"><div class="home-bg"></div></div>
 
+  <!-- 未登录 -->
+  <LoginPage v-else-if="!store.user"/>
+
+  <!-- 主页 -->
+  <HomePage v-else-if="atHome" :theme="theme" @enter="enterApp" @toggleTheme="toggleTheme"/>
+
+  <!-- 工作台 -->
   <div class="shell" v-else>
     <nav class="rail" :class="{ open: navOpen }">
       <button @click="navOpen = !navOpen">
@@ -20,6 +28,10 @@
         <VIcon name="table" :size="18"/>
         <span class="lbl">航路数据</span>
       </button>
+      <button v-if="isAdmin" :class="{ on: store.tab === 'admin' }" @click="store.tab = 'admin'">
+        <VIcon name="users" :size="18"/>
+        <span class="lbl">账号管理</span>
+      </button>
       <div class="spring"/>
       <button @click="goHome">
         <VIcon name="home" :size="17"/>
@@ -29,16 +41,20 @@
         <VIcon :name="theme === 'dark' ? 'sun' : 'moon'" :size="17"/>
         <span class="lbl">{{ theme === 'dark' ? '浅色模式' : '深色模式' }}</span>
       </button>
+      <button @click="logout">
+        <VIcon name="logout" :size="17"/>
+        <span class="lbl">退出登录</span>
+      </button>
     </nav>
 
-    <aside class="sidebar" v-show="sidebarOpen && store.tab !== 'data'">
-      <div class="search-wrap" v-if="store.tab !== 'data'">
+    <aside class="sidebar" v-show="sidebarOpen && isViewerTab">
+      <div class="search-wrap" v-if="isViewerTab">
         <input v-model="store.search"
                :placeholder="store.tab === 'charts' ? '搜索机场 — ICAO / 名称' : '搜索资料文件'"
                @keydown.esc="store.search = ''">
       </div>
       <AirportPanel v-if="store.tab === 'charts'"/>
-      <DocsPanel v-else ref="docsPanel"/>
+      <DocsPanel v-else-if="store.tab === 'docs'" ref="docsPanel"/>
     </aside>
 
     <div class="main">
@@ -46,25 +62,36 @@
         <div class="wordmark">NAIP<span>-Viewer</span></div>
         <span class="ver">{{ store.meta.DataVersion }} · EFF {{ store.meta.EffectiveDate }}</span>
         <div class="vtitle">{{ store.viewer?.title }}</div>
+        <span class="whoami" v-if="store.user">
+          {{ store.user.username }}
+          <i v-if="isAdmin">管理员</i>
+        </span>
       </header>
-      <PdfViewer v-if="store.tab !== 'data'" style="flex:1"/>
-      <DataPanel v-else/>
+      <PdfViewer v-if="isViewerTab" style="flex:1"/>
+      <DataPanel v-else-if="store.tab === 'data'"/>
+      <AdminPanel v-else-if="store.tab === 'admin'"/>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import VIcon from './components/VIcon.vue'
+import LoginPage from './components/LoginPage.vue'
 import HomePage from './components/HomePage.vue'
 import AirportPanel from './components/AirportPanel.vue'
 import DocsPanel from './components/DocsPanel.vue'
 import DataPanel from './components/DataPanel.vue'
+import AdminPanel from './components/AdminPanel.vue'
 import PdfViewer from './components/PdfViewer.vue'
 import { store, loadJSON, dataURL } from './store.js'
+import { api } from './api.js'
 
 const theme = ref(document.documentElement.dataset.theme || 'dark')
 const docsPanel = ref(null)
+
+const isAdmin = computed(() => store.user?.role === 'admin')
+const isViewerTab = computed(() => ['charts', 'docs'].includes(store.tab))
 
 const atHome = ref(!sessionStorage.getItem('naip-entered'))
 function enterApp() {
@@ -79,13 +106,22 @@ function goHome() {
 const sidebarOpen = ref(true)
 const navOpen = ref(false)
 
-watch(() => store.tab, (t) => { if (t === 'docs') docsPanel.value?.setSearch('') })
+watch(() => store.tab, (t) => {
+  if (t === 'docs') docsPanel.value?.setSearch('')
+  if (t === 'admin' || t === 'data') sidebarOpen.value = true
+})
 watch(() => store.search, (v) => { if (store.tab === 'docs') docsPanel.value?.setSearch(v) })
 
 function toggleTheme() {
   theme.value = theme.value === 'dark' ? 'light' : 'dark'
   document.documentElement.dataset.theme = theme.value
   localStorage.setItem('naip-theme', theme.value)
+}
+
+async function logout() {
+  try { await api.logout() } catch {}
+  store.user = null
+  store.tab = 'charts'
 }
 
 function onKey(e) {
@@ -108,10 +144,23 @@ function pdfNav(delta) {
 onMounted(async () => {
   window.addEventListener('keydown', onKey)
   try {
+    store.user = await api.me()
+  } catch { store.user = null } finally {
+    store.authReady = true
+  }
+  if (store.user) await loadAppData()
+})
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+
+// 登录成功后加载航图索引数据
+watch(() => store.user, (u) => { if (u) loadAppData() })
+
+async function loadAppData() {
+  if (store.airports.length) return
+  try {
     store.meta = await loadJSON('/data/index/meta.json')
   } catch {}
   store.airports = await loadJSON('/data/index/airports.json')
   store.details = await loadJSON('/data/index/airport_details.json')
-})
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+}
 </script>

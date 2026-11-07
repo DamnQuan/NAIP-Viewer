@@ -4,6 +4,8 @@ export const store = reactive({
   tab: 'charts',
   search: '',
   meta: {},
+  user: null,       // { username, role }，登录后由 /api/me 填充
+  authReady: false, // 是否已完成会话检查（决定显示登录页还是闪屏）
   airports: [],
   details: {},
   airport: null,
