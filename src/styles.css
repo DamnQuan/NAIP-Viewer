@@ -176,7 +176,14 @@ body {
 .tb.on { color: var(--accent); background: var(--accent-soft); }
 .tb.icon { padding: 5px 7px; }
 .tb:disabled { opacity: 0.35; cursor: default; background: none; }
-.zoom, .pageno { min-width: 44px; text-align: center; font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.zoom-input {
+  width: 52px; text-align: center; font-size: 12px; color: var(--text);
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 5px;
+  padding: 4px 2px; outline: none; font-variant-numeric: tabular-nums;
+}
+.zoom-input:focus { border-color: var(--accent); }
+.zoom-input:disabled { opacity: 0.4; }
+.pageno { min-width: 44px; text-align: center; font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
 .vline { width: 1px; height: 16px; background: var(--line); margin: 0 6px; }
 .grow { flex: 1; }
 
