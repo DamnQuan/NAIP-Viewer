@@ -7,7 +7,8 @@
         <span class="vline"/>
       </div>
       <button class="tb icon" @click="zoom(1/1.25)" title="缩小"><VIcon name="zoomOut" :size="15"/></button>
-      <span class="zoom">{{ Math.round(scale * 100) }}%</span>
+      <input class="zoom-input" v-model="zoomText" @change="applyZoomText" @keydown.enter="applyZoomText"
+             title="输入缩放百分比" :disabled="!pdf">%
       <button class="tb icon" @click="zoom(1.25)" title="放大"><VIcon name="zoomIn" :size="15"/></button>
       <button class="tb" :class="{ on: fit === 'width' }" @click="fit = 'width'">适宽</button>
       <button class="tb" :class="{ on: fit === 'page' }" @click="fit = 'page'">适页</button>
@@ -206,6 +207,28 @@ function navChart(delta) {
 }
 
 function zoom(d) { fit.value = 'custom'; scale.value *= d; render() }
+
+// 手动输入缩放百分比（10–800）
+const zoomText = ref('100%')
+watch(scale, (v) => { zoomText.value = Math.round(v * 100) + '%' })
+function applyZoomText() {
+  const n = parseFloat(zoomText.value)
+  if (!Number.isFinite(n)) { zoomText.value = Math.round(scale.value * 100) + '%'; return }
+  fit.value = 'custom'
+  scale.value = Math.max(0.1, Math.min(8, n / 100))
+  render()
+}
+
+// Ctrl/Cmd + 滚轮在 PDF 区域内缩放；不带 Ctrl 保持正常滚动
+function onWheel(e) {
+  if (!e.ctrlKey && !e.metaKey) return
+  if (!pdf.value) return
+  e.preventDefault()
+  fit.value = 'custom'
+  const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1
+  scale.value = Math.max(0.1, Math.min(8, scale.value * factor))
+  render()
+}
 function goto(d) {
   if (!pdf.value) return
   pageNum.value = Math.min(Math.max(1, pageNum.value + d), pdf.value.numPages)
@@ -228,6 +251,13 @@ watch(fit, () => render())
 
 let rt
 const onResize = () => { clearTimeout(rt); rt = setTimeout(() => render(), 200) }
-onMounted(() => window.addEventListener('resize', onResize))
-onBeforeUnmount(() => { window.removeEventListener('resize', onResize); releaseDoc() })
+onMounted(() => {
+  window.addEventListener('resize', onResize)
+  stageEl.value?.addEventListener('wheel', onWheel, { passive: false })
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onResize)
+  stageEl.value?.removeEventListener('wheel', onWheel)
+  releaseDoc()
+})
 </script>
